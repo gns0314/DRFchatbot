@@ -3,8 +3,10 @@ from django.contrib.auth import authenticate, login, logout
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from .models import User
-from .serializers import UserSerializer, LoginSerializer
+from .serializers import UserSerializer
+
 
 # Create your views here.
 
@@ -19,11 +21,25 @@ class Registration(APIView):
 
 
 # 로그인
-class Login(APIView):
-    serializer = LoginSerializer
-    def post(self,request):
-        user = request.data
 
-        serializer = self.serializer(data=user)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+class Login(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        user = authenticate(username=email, password=password)
+
+        if user:
+            # 로그인 성공 시 토큰 생성 및 반환
+            login(request, user)
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({'token': token.key}, status=status.HTTP_200_OK)
+        else:
+            return Response({'detail': '잘못된 정보입니다.'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+
+# 로그아웃
+class Logout(APIView):
+    def post(self, request):
+        logout(request)
+        return Response({"detail": "로그아웃되었습니다."}, status=status.HTTP_200_OK)
