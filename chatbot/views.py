@@ -1,20 +1,36 @@
-from django.shortcuts import render
-from django.views import View
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import AuthenticationFailed
 from dotenv import load_dotenv
 import openai
 import os
+from .models import Conversation
 
 load_dotenv()
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
+class ChatbotView(APIView):
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes = [IsAuthenticated]
 
-class ChatbotView(View):
     def get(self, request, *args, **kwargs):
         conversations = request.session.get('conversations', [])
-        return render(request, 'chat.html', {'conversations': conversations})
+        return Response({'conversations': conversations}, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
-        prompt = request.POST.get('prompt')
+
+        # 사용자당 최대 요청 횟수 (5번으로 설정)
+        max_requests_per_user = 5
+
+        # 사용자 세션에서 요청 횟수 추적
+        request_count = request.session.get('request_count', 0)
+        if request_count >= max_requests_per_user:
+            return Response({'error': '일일 사용횟수 5회를 초과했습니다.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        prompt = request.data.get('prompt')
         if prompt:
             # 이전 대화 기록 가져오기
             session_conversations = request.session.get('conversations', [])
@@ -32,10 +48,18 @@ class ChatbotView(View):
             )
             response = completions.choices[0].text.strip()
 
-            conversation = {'prompt': prompt, 'response': response}
+            conversation = Conversation(prompt=prompt, response=response)
+            conversation.save()
 
             # 대화 기록에 새로운 응답 추가
-            session_conversations.append(conversation)
+            session_conversations.append({'prompt': prompt, 'response': response})
             request.session['conversations'] = session_conversations
+            request.session.modified = True
 
-        return self.get(request, *args, **kwargs)
+            # 요청 횟수 증가
+            request.session['request_count'] = request_count + 1
+            request.session.modified = True
+
+            return Response({'response': response}, status=status.HTTP_200_OK)
+
+        return Response({'error': 'No prompt provided.'}, status=status.HTTP_400_BAD_REQUEST)
