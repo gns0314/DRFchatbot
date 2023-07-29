@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import openai
 import os
 from .models import Conversation
+from .serializers import ConversationSerializer
 
 load_dotenv()
 openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -20,7 +21,7 @@ class ChatbotView(APIView):
         conversations = request.session.get('conversations', [])
         return Response({'conversations': conversations}, status=status.HTTP_200_OK)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
 
         # 사용자당 최대 요청 횟수 (5번으로 설정)
         max_requests_per_user = 5
@@ -48,7 +49,7 @@ class ChatbotView(APIView):
             )
             response = completions.choices[0].text.strip()
 
-            conversation = Conversation(prompt=prompt, response=response)
+            conversation = Conversation(prompt=prompt, response=response, question_user=request.user)
             conversation.save()
 
             # 대화 기록에 새로운 응답 추가
@@ -63,3 +64,10 @@ class ChatbotView(APIView):
             return Response({'response': response}, status=status.HTTP_200_OK)
 
         return Response({'error': 'No prompt provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ConversationListView(APIView):
+    def get(self, request):
+        conversations = Conversation.objects.all()
+        serializer = ConversationSerializer(conversations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
