@@ -21,7 +21,6 @@ class Registration(APIView):
 
 
 # 로그인
-
 class Login(APIView):
     def post(self, request):
         email = request.data.get('email')
@@ -42,4 +41,4 @@ class Login(APIView):
 class Logout(APIView):
     def post(self, request):
         logout(request)
-        return Response({"detail": "로그    아웃되었습니다."}, status=status.HTTP_200_OK)
+        return Response({"detail": "로그아웃 되었습니다."}, status=status.HTTP_200_OK)
