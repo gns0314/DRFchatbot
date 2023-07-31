@@ -5,10 +5,10 @@ from rest_framework.authentication import SessionAuthentication, BasicAuthentica
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import AuthenticationFailed
 from dotenv import load_dotenv
-import openai
-import os
 from .models import Conversation
 from .serializers import ConversationSerializer
+import openai
+import os
 
 load_dotenv()
 openai.api_key = os.getenv('OPENAI_API_KEY')
