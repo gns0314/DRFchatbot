@@ -32,7 +32,7 @@ class Login(APIView):
             # 로그인 성공 시 토큰 생성 및 반환
             login(request, user)
             token, created = Token.objects.get_or_create(user=user)
-            return Response({'token': token.key}, status=status.HTTP_200_OK)
+            return Response({'Authorization: Token': token.key}, status=status.HTTP_200_OK)
         else:
             return Response({'detail': '잘못된 정보입니다.'}, status=status.HTTP_401_UNAUTHORIZED)
     

@@ -1,9 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import AuthenticationFailed
 from dotenv import load_dotenv
 from .models import Conversation
 from .serializers import ConversationSerializer
@@ -13,11 +12,12 @@ import os
 load_dotenv()
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
+# 챗봇 뷰
 class ChatbotView(APIView):
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    authentication_classes = [TokenAuthentication] 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request):
         conversations = request.session.get('conversations', [])
         return Response({'conversations': conversations}, status=status.HTTP_200_OK)
 
@@ -66,8 +66,12 @@ class ChatbotView(APIView):
         return Response({'error': 'No prompt provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+# 채팅 뷰
 class ConversationListView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
-        conversations = Conversation.objects.all()
+        user = request.user
+        conversations = Conversation.objects.filter(question_user=user)
         serializer = ConversationSerializer(conversations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
