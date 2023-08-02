@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.utils import timezone
 from django.contrib.auth import authenticate, login, logout
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -32,6 +32,11 @@ class Login(APIView):
             # 로그인 성공 시 토큰 생성 및 반환
             login(request, user)
             token, created = Token.objects.get_or_create(user=user)
+
+            # 요청 횟수 초기화 및 마지막 요청 시간 업데이트
+            user.request_count = 0
+            user.last_request_time = timezone.now()
+            user.save()
             
             return Response({'token': token.key}, status=status.HTTP_200_OK)
         else:

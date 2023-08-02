@@ -41,6 +41,8 @@ class User(AbstractUser):
     is_active = models.BooleanField(default=True)
     last_login = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
+    request_count = models.IntegerField(default=0)
+    last_request_time = models.DateTimeField(default=timezone.now)
     
     USERNAME_FIELD = 'email'
     EMAIL_FIELD = 'email'
